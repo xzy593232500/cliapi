@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cliapi}
+      POSTGRES_USER: ${POSTGRES_USER:-cliapi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cliapi} -d ${POSTGRES_DB:-cliapi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${PORT:-8787}:8787"
+    environment:
+      PORT: 8787
+      DATABASE_URL: postgres://${POSTGRES_USER:-cliapi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cliapi}
+      JWT_SECRET: ${JWT_SECRET}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      API_KEY_PREFIX: ${API_KEY_PREFIX:-ocp}
+      TOKEN_RATE_TOKENS: ${TOKEN_RATE_TOKENS:-500000}
+      TOKEN_RATE_CENTS: ${TOKEN_RATE_CENTS:-100}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+
+volumes:
+  postgres_data:
