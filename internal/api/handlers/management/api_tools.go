@@ -22,8 +22,8 @@ import (
 const defaultAPICallTimeout = 60 * time.Second
 
 const (
-	geminiOAuthClientID     = "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com"
-	geminiOAuthClientSecret = "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"
+	geminiOAuthClientID     = "SET_GOOGLE_GEMINI_OAUTH_CLIENT_ID"
+	geminiOAuthClientSecret = "SET_GOOGLE_GEMINI_OAUTH_CLIENT_SECRET"
 )
 
 var geminiOAuthScopes = []string{
