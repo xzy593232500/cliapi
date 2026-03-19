@@ -1530,19 +1530,3 @@ func applyOAuthModelAlias(cfg *config.Config, provider, authKind string, models 
 	}
 	return out
 }
-e = rewriteModelInfoName(clone.Name, id, mappedID)
-			}
-			out = append(out, &clone)
-			addedAlias = true
-		}
-
-		if !keepOriginal && !addedAlias {
-			if _, exists := seen[key]; exists {
-				continue
-			}
-			seen[key] = struct{}{}
-			out = append(out, model)
-		}
-	}
-	return out
-}
