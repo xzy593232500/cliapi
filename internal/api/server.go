@@ -1068,17 +1068,3 @@ func AuthMiddleware(manager *sdkaccess.Manager) gin.HandlerFunc {
 		c.AbortWithStatusJSON(statusCode, gin.H{"error": err.Message})
 	}
 }
-t("accessMetadata", result.Metadata)
-				}
-			}
-			c.Next()
-			return
-		}
-
-		statusCode := err.HTTPStatusCode()
-		if statusCode >= http.StatusInternalServerError {
-			log.Errorf("authentication middleware error: %v", err)
-		}
-		c.AbortWithStatusJSON(statusCode, gin.H{"error": err.Message})
-	}
-}
