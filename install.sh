@@ -7,6 +7,7 @@ APP_DIR="/opt/cliapi"
 APP_NAME="CLIAPI"
 REPO_URL="${CLIAPI_REPO_URL:-https://github.com/xzy593232500/cliapi.git}"
 BRANCH="${CLIAPI_BRANCH:-main}"
+DEFAULT_PORT="${CLIAPI_PORT:-8317}"
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "缺少命令: $1"; exit 1; }
@@ -41,6 +42,24 @@ install_compose_if_needed() {
   chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 }
 
+install_go_if_needed() {
+  if command -v go >/dev/null 2>&1; then
+    echo "[ok] go 已存在"
+    return
+  fi
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get install -y golang-go
+    return
+  fi
+  if command -v apk >/dev/null 2>&1; then
+    apk add --no-cache go
+    return
+  fi
+  echo "缺少 go，且当前系统不支持自动安装，请手动安装 Go 后重试"
+  exit 1
+}
+
 clone_or_update_repo() {
   if [ -d "$APP_DIR/.git" ]; then
     echo "[info] 检测到已有仓库，拉取最新代码"
@@ -49,7 +68,6 @@ clone_or_update_repo() {
     git -C "$APP_DIR" pull --ff-only origin "$BRANCH"
     return
   fi
-
   rm -rf "$APP_DIR"
   git clone --depth=1 --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
 }
@@ -59,59 +77,68 @@ prepare_layout() {
 
   if [ ! -f "$APP_DIR/.env" ]; then
     cp "$APP_DIR/.env.example" "$APP_DIR/.env"
-    if grep -q '^# MANAGEMENT_PASSWORD=' "$APP_DIR/.env"; then
-      sed -i "s#^# MANAGEMENT_PASSWORD=.*##g" "$APP_DIR/.env" >/dev/null 2>&1 || true
-    fi
-    echo "MANAGEMENT_PASSWORD=$(randhex)" >> "$APP_DIR/.env"
   fi
 
   if ! grep -q '^MANAGEMENT_PASSWORD=' "$APP_DIR/.env"; then
     echo "MANAGEMENT_PASSWORD=$(randhex)" >> "$APP_DIR/.env"
   fi
 
+  if ! grep -q '^CLI_PROXY_IMAGE=' "$APP_DIR/.env"; then
+    echo "CLI_PROXY_IMAGE=cliapi:local" >> "$APP_DIR/.env"
+  else
+    sed -i 's#^CLI_PROXY_IMAGE=.*#CLI_PROXY_IMAGE=cliapi:local#' "$APP_DIR/.env"
+  fi
+
   if [ ! -f "$APP_DIR/config.yaml" ]; then
     cp "$APP_DIR/config.example.yaml" "$APP_DIR/config.yaml"
   fi
+
+  sed -i 's/allow-remote: false/allow-remote: true/' "$APP_DIR/config.yaml" || true
+  sed -i "s/^port: .*/port: ${DEFAULT_PORT}/" "$APP_DIR/config.yaml" || true
+}
+
+build_binary() {
+  cd "$APP_DIR"
+  echo "[info] 正在本机构建静态二进制..."
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o CLIProxyAPI ./cmd/server
+  file CLIProxyAPI || true
+}
+
+start_service() {
+  cd "$APP_DIR"
+  docker compose down --remove-orphans || true
+  docker compose build --no-cache
+  docker compose up -d --pull never
 }
 
 render_notice() {
-  MGMT_PASSWORD=$(grep '^MANAGEMENT_PASSWORD=' "$APP_DIR/.env" | tail -n1 | cut -d= -f2- || true)
+  local mgmt_password
+  mgmt_password=$(grep '^MANAGEMENT_PASSWORD=' "$APP_DIR/.env" | tail -n1 | cut -d= -f2- || true)
   cat <<MSG
 
 ${APP_NAME} 已部署到 ${APP_DIR}
 
-下一步请重点检查这两个文件：
+管理密钥:
+  ${mgmt_password}
+
+建议检查文件:
   ${APP_DIR}/.env
   ${APP_DIR}/config.yaml
 
-至少建议补这些配置：
-  MANAGEMENT_PASSWORD=${MGMT_PASSWORD}
+建议补充:
   CPA_QUOTA_POSTGRES_DSN=postgresql://user:pass@host:5432/cliapi
 
-如果你希望远程访问管理后台，请在 config.yaml 里确认：
-  remote-management:
-    allow-remote: true
+当前访问地址:
+  http://服务器IP:${DEFAULT_PORT}/
+  http://服务器IP:${DEFAULT_PORT}/management.html
+  http://服务器IP:${DEFAULT_PORT}/management-quota.html
 
-启动 / 更新服务：
-  cd ${APP_DIR} && docker compose up -d --build
+本机验证:
+  curl http://127.0.0.1:${DEFAULT_PORT}/
+  curl http://127.0.0.1:${DEFAULT_PORT}/management-quota.html
 
-查看日志：
-  cd ${APP_DIR} && docker compose logs -f
-
-基础地址：
-  http://服务器IP:8317/
-
-原后台：
-  http://服务器IP:8317/management.html
-
-额度后台：
-  http://服务器IP:8317/management-quota.html
-
-用户余额接口：
-  GET http://服务器IP:8317/v1/quota/balance
-
-用户兑换接口：
-  POST http://服务器IP:8317/v1/quota/redeem
+查看日志:
+  cd ${APP_DIR} && docker compose logs -f --tail=100
 MSG
 }
 
@@ -121,20 +148,23 @@ main_install() {
   need_cmd openssl
   install_docker_if_needed
   install_compose_if_needed
+  install_go_if_needed
   clone_or_update_repo
   prepare_layout
-  cd "$APP_DIR"
-  docker compose up -d --build
+  build_binary
+  start_service
   render_notice
 }
 
 main_update() {
   need_cmd git
+  install_go_if_needed
   clone_or_update_repo
   prepare_layout
-  cd "$APP_DIR"
-  docker compose up -d --build
+  build_binary
+  start_service
   echo "更新完成"
+  render_notice
 }
 
 main_uninstall() {
