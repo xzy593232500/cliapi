@@ -350,7 +350,7 @@ func (s *Server) setupRoutes() {
 		v1beta.GET("/models/*action", geminiHandlers.GeminiGetHandler)
 	}
 
-	RegisterQuotaRoutes(s.engine, AuthMiddleware(s.accessManager))
+	modules.RegisterQuotaRoutes(s.engine, AuthMiddleware(s.accessManager))
 
 	// Root endpoint
 	s.engine.GET("/", func(c *gin.Context) {

@@ -115,6 +115,9 @@ func (h *Handler) SetAuthManager(manager *coreauth.Manager) { h.authManager = ma
 // SetUsageStatistics allows replacing the usage statistics reference.
 func (h *Handler) SetUsageStatistics(stats *usage.RequestStatistics) { h.usageStats = stats }
 
+// SetQuotaStore attaches a quota store for token balance management.
+func (h *Handler) SetQuotaStore(store *quota.Store) { h.quotaStore = store }
+
 // SetLocalPassword configures the runtime-local password accepted for localhost requests.
 func (h *Handler) SetLocalPassword(password string) { h.localPassword = password }
 
