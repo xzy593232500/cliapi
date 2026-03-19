@@ -323,10 +323,3 @@ func (h *Handler) updateStringField(c *gin.Context, set func(string)) {
 	set(*body.Value)
 	h.persist(c)
 }
-il {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body"})
-		return
-	}
-	set(*body.Value)
-	h.persist(c)
-}
