@@ -1072,6 +1072,3 @@ func AuthMiddleware(manager *sdkaccess.Manager) gin.HandlerFunc {
 		c.AbortWithStatusJSON(statusCode, gin.H{"error": err.Message})
 	}
 }
-essage})
-	}
-}
