@@ -184,8 +184,61 @@ const managementQuotaInjection = `<script>
   const fmtNum = (n) => new Intl.NumberFormat('en-US').format(Number(n || 0));
   const fmtUsd = (n) => '$' + Number(n || 0).toFixed(6).replace(/0+$/,'').replace(/\.$/,'');
   const keyInput = panel.querySelector('#cpaMgmtKey');
-  const saved = localStorage.getItem('cpa_quota_management_key') || '';
+  const storageKeys = ['cpa_quota_management_key', 'managementKey', 'management_key', 'apiKey', 'api_key'];
+  const saved = storageKeys.map(k => localStorage.getItem(k) || '').find(Boolean) || '';
   if (saved) keyInput.value = saved;
+
+  function storeKey(raw) {
+    const value = String(raw || '').trim().replace(/^Bearer\s+/i, '');
+    if (!value) return;
+    keyInput.value = value;
+    localStorage.setItem('cpa_quota_management_key', value);
+  }
+
+  function captureHeaders(headersLike) {
+    if (!headersLike) return;
+    try {
+      if (headersLike instanceof Headers) {
+        const auth = headersLike.get('Authorization') || headersLike.get('authorization');
+        const mgmt = headersLike.get('X-Management-Key') || headersLike.get('x-management-key');
+        if (auth) storeKey(auth);
+        if (mgmt) storeKey(mgmt);
+        return;
+      }
+      if (Array.isArray(headersLike)) {
+        headersLike.forEach(([k, v]) => {
+          if (!k) return;
+          if (/^authorization$/i.test(k) || /^x-management-key$/i.test(k)) storeKey(v);
+        });
+        return;
+      }
+      Object.keys(headersLike || {}).forEach((k) => {
+        if (/^authorization$/i.test(k) || /^x-management-key$/i.test(k)) storeKey(headersLike[k]);
+      });
+    } catch (_) {}
+  }
+
+  const originalFetch = window.fetch ? window.fetch.bind(window) : null;
+  if (originalFetch) {
+    window.fetch = function(input, init) {
+      if (init && init.headers) captureHeaders(init.headers);
+      if (input && input.headers) captureHeaders(input.headers);
+      return originalFetch(input, init);
+    };
+  }
+
+  const originalOpen = XMLHttpRequest.prototype.open;
+  const originalSetHeader = XMLHttpRequest.prototype.setRequestHeader;
+  XMLHttpRequest.prototype.open = function() {
+    this.__cpaHeaders = {};
+    return originalOpen.apply(this, arguments);
+  };
+  XMLHttpRequest.prototype.setRequestHeader = function(name, value) {
+    this.__cpaHeaders = this.__cpaHeaders || {};
+    this.__cpaHeaders[name] = value;
+    captureHeaders(this.__cpaHeaders);
+    return originalSetHeader.apply(this, arguments);
+  };
 
   function openPanel(){ panel.classList.add('open'); mask.classList.add('open'); }
   function closePanel(){ panel.classList.remove('open'); mask.classList.remove('open'); }
