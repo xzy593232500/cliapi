@@ -60,6 +60,28 @@ Get 10% OFF GLM CODING PLAN：https://z.ai/subscribe?ic=8JVLJQFSKB
 
 CLIProxyAPI Guides: [https://help.router-for.me/](https://help.router-for.me/)
 
+## Quick Install (CLIAPI fork)
+
+You can install this fork directly with:
+
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/xzy593232500/cliapi/main/install.sh) app CLIAPI
+```
+
+The installer will:
+
+- clone this repository into `/opt/cliapi`
+- prepare `.env`
+- prepare `config.yaml`
+- build and start with Docker Compose
+- expose both the original management panel and the quota console
+
+After install, check:
+
+- `/management.html`
+- `/management-quota.html`
+- `/v1/quota/balance`
+
 ## Management API
 
 see [MANAGEMENT_API.md](https://help.router-for.me/management/api)
