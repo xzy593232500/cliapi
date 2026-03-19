@@ -99,7 +99,7 @@ Current extension direction:
 - recharge through redeem codes
 - management endpoints under `/v0/management/quota/...`
 - user endpoints under `/v1/quota/...`
-- product-style quota console at `/management-quota.html`
+- quota management integrated into `management.html`
 
 Environment variables for quota storage:
 

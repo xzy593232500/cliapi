@@ -131,11 +131,13 @@ ${APP_NAME} 已部署到 ${APP_DIR}
 当前访问地址:
   http://服务器IP:${DEFAULT_PORT}/
   http://服务器IP:${DEFAULT_PORT}/management.html
-  http://服务器IP:${DEFAULT_PORT}/management-quota.html
+
+额度管理:
+  已整合进 management.html 页面内
 
 本机验证:
   curl http://127.0.0.1:${DEFAULT_PORT}/
-  curl http://127.0.0.1:${DEFAULT_PORT}/management-quota.html
+  curl http://127.0.0.1:${DEFAULT_PORT}/management.html
 
 查看日志:
   cd ${APP_DIR} && docker compose logs -f --tail=100

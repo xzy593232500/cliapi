@@ -361,11 +361,9 @@ func (s *Server) setupRoutes() {
 				"POST /v1/completions",
 				"GET /v1/models",
 				"GET /management.html",
-				"GET /management-quota.html",
 				"GET /v1/quota/balance",
 				"POST /v1/quota/redeem",
 			},
-			"quota_console": "/management-quota.html",
 		})
 	})
 	s.engine.POST("/v1internal:method", geminiCLIHandlers.CLIHandler)
@@ -1072,5 +1070,8 @@ func AuthMiddleware(manager *sdkaccess.Manager) gin.HandlerFunc {
 			log.Errorf("authentication middleware error: %v", err)
 		}
 		c.AbortWithStatusJSON(statusCode, gin.H{"error": err.Message})
+	}
+}
+essage})
 	}
 }
